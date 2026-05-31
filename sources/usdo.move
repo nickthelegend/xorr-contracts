@@ -3,7 +3,7 @@ module xorr_contracts::usdo {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    struct USDO has drop {}
+    public struct USDO has drop {}
 
     fun init(witness: USDO, ctx: &mut TxContext) {
         let (treasury_cap, metadata) = coin::create_currency(

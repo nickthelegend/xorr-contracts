@@ -4,7 +4,7 @@ module xorr_contracts::registry {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    struct XorrRegistry has key {
+    public struct XorrRegistry has key {
         id: UID,
         pool_count: u64,
         protocol_version: u8,

@@ -3,7 +3,7 @@ module xorr_contracts::xorr {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    struct XORR has drop {}
+    public struct XORR has drop {}
 
     fun init(witness: XORR, ctx: &mut TxContext) {
         let (treasury_cap, metadata) = coin::create_currency(

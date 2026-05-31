@@ -5,7 +5,7 @@ module xorr_contracts::liquidity_pool {
     use sui::transfer;
     use sui::tx_context::{Self, TxContext};
 
-    struct Pool<phantom A, phantom B> has key {
+    public struct Pool<phantom A, phantom B> has key {
         id: UID,
         balance_a: Balance<A>,
         balance_b: Balance<B>,
@@ -23,6 +23,10 @@ module xorr_contracts::liquidity_pool {
             fee_bps,
             tvl_snapshot: 0,
         }
+    }
+
+    public fun share_pool<A, B>(pool: Pool<A, B>) {
+        transfer::share_object(pool);
     }
 
     public fun add_liquidity<A, B>(
