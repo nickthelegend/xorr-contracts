@@ -8,6 +8,9 @@
 # Move Build Output
 build/
 
+# Move publish artifact (per-environment, must not be committed)
+Published.local.toml
+
 # Operating System Files
 .DS_Store
 Thumbs.db

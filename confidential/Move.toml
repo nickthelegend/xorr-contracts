@@ -1,0 +1,11 @@
+[package]
+name = "xorr"
+edition = "2024.beta"
+
+[dependencies]
+enclave = { git = "https://github.com/MystenLabs/nautilus.git", subdir = "move/enclave", rev = "main" }
+deepbook = { git = "https://github.com/MystenLabs/deepbookv3.git", subdir = "packages/deepbook", rev = "main" }
+token = { git = "https://github.com/MystenLabs/deepbookv3.git", subdir = "packages/token", rev = "main" }
+
+[addresses]
+xorr = "0x0"
