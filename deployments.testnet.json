@@ -1,0 +1,19 @@
+{
+  "network": "testnet",
+  "version": "v2 (with market module: over + under collateralized lend/borrow)",
+  "publishDigest": "A23RJrdMrat5Qxf33cXPDwx4jd6HCGLGqggQXW6HAHEu",
+  "packageId": "0x9572997e5d494f961fc9b2260b8c085a1b20b16bd1495f3972b7dfda0ff11a40",
+  "deployer": "0xbe4290542197515da9967183c24b60ad092f0d08a7baf1201f7eec913d44dc23",
+  "objects": {
+    "usdtFaucet": "0xd82f0891a6a954d56369cc3136d5227261dc1222f71f8689985feda94c151843",
+    "creditOracle": "0x7ff16c140cd7ffaa253a8204d9013f51393c3cf90fc4f75e4e2d42ab82f86606",
+    "oracleAdminCap": "0x4b8dbf17abe388623fc826beea4007e0da8fc5ad7054c0c825bb023ce8f08fc9",
+    "demoLendingPool": "0x64a3efc2629084d75c168a1140c0b5feeb167ad5b1ae19ccd2214a3b332e8661",
+    "demoMerchantEscrow": "0x74b6e2bc6b0e6f2aa43905b5968d29f6fac10fa53835a6dea2d328d076dd11b6"
+  },
+  "modules": ["bnpl", "collateral", "confidential_credit", "credit", "lending_pool", "liquidity_pool", "market", "merchant_escrow", "registry", "swap_router", "usdo", "usdt", "xorr"],
+  "previousPublishes": {
+    "v1_bnpl": "0x6cfb612ed64ac01de2f6f434f93ffa0a266ed25a3d93dbf7172e409ba26482eb",
+    "v0_amm": "0xcce58c073fe38e06bca69674792098501f5a6cddac197f2565d6300ac0158a4b"
+  }
+}
