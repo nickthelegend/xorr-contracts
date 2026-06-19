@@ -15,6 +15,7 @@
 module xorr_contracts::confidential_credit;
 
 use std::bcs;
+use sui::clock::Clock;
 use sui::ed25519;
 use sui::event;
 use sui::nitro_attestation::{Self, NitroAttestationDocument};
@@ -27,6 +28,13 @@ const EPcrsNotSet: u64 = 3;
 const EPcrMismatch: u64 = 4;
 const ENoAttestedKey: u64 = 5;
 const ENotAttestedAdmin: u64 = 6;
+const EStaleAttestation: u64 = 7;
+
+/// Max age of a TEE attestation accepted on-chain. An attestation older than
+/// this is rejected, so a stale/replayed score (e.g. an old high limit after a
+/// default) can't be re-applied — the borrower must fetch a fresh signature
+/// that reflects their current state.
+const MAX_ATTESTATION_AGE_MS: u64 = 600_000; // 10 minutes
 
 /// Intent-scope byte distinguishing credit attestations from other signed
 /// payloads (matches the enclave's signing convention).
@@ -207,6 +215,36 @@ public fun verify_and_apply_score_attested(
     signature: vector<u8>,
 ) {
     assert!(oracle.attested && oracle.enclave_pubkey.length() == 32, ENoEnclaveKey);
+    let msg = CreditAttestation {
+        intent: CREDIT_INTENT,
+        timestamp_ms,
+        borrower: credit::borrower(profile),
+        score,
+        approved_limit,
+        nonce,
+    };
+    let ok = ed25519::ed25519_verify(&signature, &oracle.enclave_pubkey, &bcs::to_bytes(&msg));
+    assert!(ok, EBadSignature);
+    credit::apply_attested_score(profile, score, approved_limit);
+    event::emit(ScoreApplied { borrower: credit::borrower(profile), score, approved_limit, nonce });
+}
+
+/// Like `verify_and_apply_score_attested` but with on-chain FRESHNESS: rejects
+/// attestations older than `MAX_ATTESTATION_AGE_MS` (and any future-dated ones).
+/// This is the replay-safe entrypoint — an old signed score can't be re-applied.
+public fun verify_and_apply_score_attested_v2(
+    oracle: &AttestedOracle,
+    profile: &mut CreditProfile,
+    clock: &Clock,
+    score: u64,
+    approved_limit: u64,
+    nonce: u64,
+    timestamp_ms: u64,
+    signature: vector<u8>,
+) {
+    assert!(oracle.attested && oracle.enclave_pubkey.length() == 32, ENoEnclaveKey);
+    let now = clock.timestamp_ms();
+    assert!(timestamp_ms <= now && now - timestamp_ms <= MAX_ATTESTATION_AGE_MS, EStaleAttestation);
     let msg = CreditAttestation {
         intent: CREDIT_INTENT,
         timestamp_ms,

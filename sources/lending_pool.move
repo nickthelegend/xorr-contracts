@@ -13,6 +13,7 @@ const EInsufficientLiquidity: u64 = 0;
 const EZeroAmount: u64 = 1;
 const ENotAdmin: u64 = 2;
 const EWrongPool: u64 = 3;
+const EZeroShares: u64 = 4;
 
 /// Admin capability for a specific lending pool.
 public struct PoolAdminCap has key, store {
@@ -78,6 +79,8 @@ public fun supply<T>(pool: &mut LendingPool<T>, deposit: Coin<T>, ctx: &mut TxCo
     } else {
         (((amount as u128) * (pool.total_shares as u128)) / (assets as u128)) as u64
     };
+    // Reject deposits that would round to zero shares (share-inflation guard).
+    assert!(shares > 0, EZeroShares);
     balance::join(&mut pool.available, deposit.into_balance());
     pool.total_shares = pool.total_shares + shares;
     let pool_id = object::id(pool);
