@@ -20,7 +20,13 @@
     "attestedOracle": "0xe8d3e3baf92ad7ab86d57ae55aedaf2be15fdff6000881f85aa0c489cc6753a8",
     "upgradeCap": "0x269955cfe57732e0f8179c73c0d99bf8ce13acfe216c4f8486b9de9830f09364",
     "demoLendingPool": "0x2763f2907909d2aade0224bad144d4497df741d01c500d781c7abd2331cb9993",
-    "demoMerchantEscrow": "0x44945bd13ef548fd3beb77c6d111bdfd88e549a3650a9caa7213d527d4e59c0c"
+    "demoMerchantEscrow": "0x44945bd13ef548fd3beb77c6d111bdfd88e549a3650a9caa7213d527d4e59c0c",
+    "dusdcLendingPool": "0xa68c5753188a6ca5f4ae9193ec74830737ebdcb1130dec8fd4a1c4316a49d73a",
+    "deepLendingPool": "0x126229edba272680ce5234ad5454327600e66526e563432c2e74a95ef967f2e2"
+  },
+  "deepbookTokens": {
+    "DUSDC": "0xe95040085976bfd54a1a07225cd46c8a2b4e8e2b6732f140a0fc49850ba73e1a::dusdc::DUSDC",
+    "DEEP": "0x36dbef866a1d62bf7328989a10fb2f07d769f4ee587c0de4a0a256e57e0a58a8::deep::DEEP"
   },
   "enclave": {
     "credit_signing_pubkey": "0x1b250be06dd80370ff11f0b8fe17d4f32da4485005bf9d72a033933709d45777",
