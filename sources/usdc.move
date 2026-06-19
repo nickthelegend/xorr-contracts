@@ -1,30 +1,30 @@
-module xorr_contracts::usdt;
+module xorr_contracts::usdc;
 
 use sui::coin::{Self, Coin, TreasuryCap};
 
 const EFaucetLimit: u64 = 0;
 
-/// Max a single faucet call can mint: 10,000 USDT (6 decimals).
+/// Max a single faucet call can mint: 10,000 USDC (6 decimals).
 const MAX_FAUCET_MINT: u64 = 10_000_000_000;
 
-/// One-time witness for the test USDT currency.
-public struct USDT has drop {}
+/// One-time witness for the test USDC currency.
+public struct USDC has drop {}
 
 /// Shared faucet wrapping the `TreasuryCap` so the dApp faucet page can mint
-/// test USDT permissionlessly (capped per call). Test / hackathon only — a
+/// test USDC permissionlessly (capped per call). Test / hackathon only — a
 /// real asset would keep the cap private and gate minting.
 public struct Faucet has key {
     id: UID,
-    treasury: TreasuryCap<USDT>,
+    treasury: TreasuryCap<USDC>,
 }
 
-fun init(witness: USDT, ctx: &mut TxContext) {
+fun init(witness: USDC, ctx: &mut TxContext) {
     let (treasury_cap, metadata) = coin::create_currency(
         witness,
         6,
-        b"USDT",
-        b"Tether USD (Test)",
-        b"Test USDT for the XORR Buy-Now-Pay-Never demo on Sui",
+        b"USDC",
+        b"USD Coin (Test)",
+        b"Test USDC for the XORR Buy-Now-Pay-Never demo on Sui",
         option::none(),
         ctx,
     );
@@ -35,8 +35,8 @@ fun init(witness: USDT, ctx: &mut TxContext) {
     });
 }
 
-/// Mint up to `MAX_FAUCET_MINT` test USDT and return the coin to the caller.
-public fun faucet_mint(faucet: &mut Faucet, amount: u64, ctx: &mut TxContext): Coin<USDT> {
+/// Mint up to `MAX_FAUCET_MINT` test USDC and return the coin to the caller.
+public fun faucet_mint(faucet: &mut Faucet, amount: u64, ctx: &mut TxContext): Coin<USDC> {
     assert!(amount <= MAX_FAUCET_MINT, EFaucetLimit);
     coin::mint(&mut faucet.treasury, amount, ctx)
 }
@@ -47,12 +47,12 @@ entry fun faucet_to_sender(faucet: &mut Faucet, amount: u64, ctx: &mut TxContext
     transfer::public_transfer(c, ctx.sender());
 }
 
-/// Burn test USDT back through the faucet treasury.
-public fun burn(faucet: &mut Faucet, c: Coin<USDT>) {
+/// Burn test USDC back through the faucet treasury.
+public fun burn(faucet: &mut Faucet, c: Coin<USDC>) {
     coin::burn(&mut faucet.treasury, c);
 }
 
 #[test_only]
 public fun init_for_testing(ctx: &mut TxContext) {
-    init(USDT {}, ctx)
+    init(USDC {}, ctx)
 }

@@ -15,7 +15,7 @@ use xorr_contracts::credit::{Self, CreditProfile};
 use xorr_contracts::lending_pool::{Self, LendingPool};
 use xorr_contracts::market::{Self, CollateralizedPosition};
 use xorr_contracts::merchant_escrow::{Self, MerchantEscrow, MerchantCap};
-use xorr_contracts::usdt::USDT;
+use xorr_contracts::usdc::USDC;
 
 const ADMIN: address = @0xA1;
 const LP: address = @0x11;
@@ -23,28 +23,28 @@ const BORROWER: address = @0xB1;
 const MERCHANT: address = @0x3E;
 const M: u64 = 1_000_000;
 
-fun usdt(amt: u64, ctx: &mut TxContext): Coin<USDT> { coin::mint_for_testing<USDT>(amt, ctx) }
+fun usdc(amt: u64, ctx: &mut TxContext): Coin<USDC> { coin::mint_for_testing<USDC>(amt, ctx) }
 
 // 1. Lending pool: suppliers earn injected yield (share value appreciates).
 #[test]
 fun lending_pool_supply_yield_withdraw() {
     let mut sc = ts::begin(ADMIN);
-    { let cap = lending_pool::create_pool<USDT>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
+    { let cap = lending_pool::create_pool<USDC>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
     sc.next_tx(LP);
     let receipt;
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
-        let c = usdt(100 * M, sc.ctx());
-        receipt = lending_pool::supply<USDT>(&mut pool, c, sc.ctx());
-        let y = usdt(20 * M, sc.ctx());
-        lending_pool::inject_yield<USDT>(&mut pool, y);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
+        let c = usdc(100 * M, sc.ctx());
+        receipt = lending_pool::supply<USDC>(&mut pool, c, sc.ctx());
+        let y = usdc(20 * M, sc.ctx());
+        lending_pool::inject_yield<USDC>(&mut pool, y);
         assert!(lending_pool::total_assets(&pool) == 120 * M, 1);
         ts::return_shared(pool);
     };
     sc.next_tx(LP);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
-        let out = lending_pool::withdraw<USDT>(&mut pool, receipt, sc.ctx());
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
+        let out = lending_pool::withdraw<USDC>(&mut pool, receipt, sc.ctx());
         assert!(coin::value(&out) == 120 * M, 2);
         coin::burn_for_testing(out);
         ts::return_shared(pool);
@@ -87,19 +87,19 @@ fun credit_over_limit_aborts() {
 }
 
 fun setup_pool_profile_escrow(sc: &mut ts::Scenario) {
-    { let cap = lending_pool::create_pool<USDT>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
+    { let cap = lending_pool::create_pool<USDC>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
     sc.next_tx(LP);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(sc);
-        let c = usdt(1000 * M, sc.ctx());
-        let r = lending_pool::supply<USDT>(&mut pool, c, sc.ctx());
+        let mut pool = ts::take_shared<LendingPool<USDC>>(sc);
+        let c = usdc(1000 * M, sc.ctx());
+        let r = lending_pool::supply<USDC>(&mut pool, c, sc.ctx());
         transfer::public_transfer(r, LP);
         ts::return_shared(pool);
     };
     sc.next_tx(BORROWER);
     { credit::open_profile(sc.ctx()); };
     sc.next_tx(MERCHANT);
-    { let cap = merchant_escrow::create_escrow<USDT>(sc.ctx()); transfer::public_transfer(cap, MERCHANT); };
+    { let cap = merchant_escrow::create_escrow<USDC>(sc.ctx()); transfer::public_transfer(cap, MERCHANT); };
 }
 
 // 4. BNPL under-collateralized purchase aborts (collateral < amount).
@@ -109,11 +109,11 @@ fun bnpl_under_collateralized_aborts() {
     setup_pool_profile_escrow(&mut sc);
     sc.next_tx(BORROWER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let mut profile = ts::take_shared<CreditProfile>(&sc);
-        let mut escrow = ts::take_shared<MerchantEscrow<USDT>>(&sc);
+        let mut escrow = ts::take_shared<MerchantEscrow<USDC>>(&sc);
         let collat = coin::mint_for_testing<SUI>(10 * M, sc.ctx());
-        bnpl::open_purchase<USDT, SUI>(&mut pool, &mut profile, &mut escrow, collat, 30 * M, 30, b"o", sc.ctx());
+        bnpl::open_purchase<USDC, SUI>(&mut pool, &mut profile, &mut escrow, collat, 30 * M, 30, b"o", sc.ctx());
         ts::return_shared(pool); ts::return_shared(profile); ts::return_shared(escrow);
     };
     sc.end();
@@ -126,20 +126,20 @@ fun bnpl_yield_auto_repay() {
     setup_pool_profile_escrow(&mut sc);
     sc.next_tx(BORROWER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let mut profile = ts::take_shared<CreditProfile>(&sc);
-        let mut escrow = ts::take_shared<MerchantEscrow<USDT>>(&sc);
+        let mut escrow = ts::take_shared<MerchantEscrow<USDC>>(&sc);
         let collat = coin::mint_for_testing<SUI>(50 * M, sc.ctx());
-        bnpl::open_purchase<USDT, SUI>(&mut pool, &mut profile, &mut escrow, collat, 30 * M, 30, b"o", sc.ctx());
+        bnpl::open_purchase<USDC, SUI>(&mut pool, &mut profile, &mut escrow, collat, 30 * M, 30, b"o", sc.ctx());
         ts::return_shared(pool); ts::return_shared(profile); ts::return_shared(escrow);
     };
     sc.next_tx(BORROWER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let mut profile = ts::take_shared<CreditProfile>(&sc);
-        let mut loan = ts::take_shared<Loan<USDT, SUI>>(&sc);
-        let y = usdt(10 * M, sc.ctx());
-        let leftover = bnpl::auto_repay_from_yield<USDT, SUI>(&mut loan, &mut pool, &mut profile, y, sc.ctx());
+        let mut loan = ts::take_shared<Loan<USDC, SUI>>(&sc);
+        let y = usdc(10 * M, sc.ctx());
+        let leftover = bnpl::auto_repay_from_yield<USDC, SUI>(&mut loan, &mut pool, &mut profile, y, sc.ctx());
         coin::burn_for_testing(leftover);
         assert!(bnpl::outstanding(&loan) == 21_500_000, 1);
         ts::return_shared(pool); ts::return_shared(profile); ts::return_shared(loan);
@@ -154,21 +154,21 @@ fun bnpl_default_after_due() {
     setup_pool_profile_escrow(&mut sc);
     sc.next_tx(BORROWER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let mut profile = ts::take_shared<CreditProfile>(&sc);
-        let mut escrow = ts::take_shared<MerchantEscrow<USDT>>(&sc);
+        let mut escrow = ts::take_shared<MerchantEscrow<USDC>>(&sc);
         let collat = coin::mint_for_testing<SUI>(50 * M, sc.ctx());
-        bnpl::open_purchase<USDT, SUI>(&mut pool, &mut profile, &mut escrow, collat, 30 * M, 1, b"o", sc.ctx());
+        bnpl::open_purchase<USDC, SUI>(&mut pool, &mut profile, &mut escrow, collat, 30 * M, 1, b"o", sc.ctx());
         ts::return_shared(pool); ts::return_shared(profile); ts::return_shared(escrow);
     };
     sc.next_epoch(ADMIN); sc.next_epoch(ADMIN);
     sc.next_tx(ADMIN);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let mut profile = ts::take_shared<CreditProfile>(&sc);
-        let mut loan = ts::take_shared<Loan<USDT, SUI>>(&sc);
+        let mut loan = ts::take_shared<Loan<USDC, SUI>>(&sc);
         let lock = ts::take_shared<CollateralLock<SUI>>(&sc);
-        bnpl::default_loan<USDT, SUI>(&mut loan, lock, &mut pool, &mut profile, sc.ctx());
+        bnpl::default_loan<USDC, SUI>(&mut loan, lock, &mut pool, &mut profile, sc.ctx());
         assert!(bnpl::status(&loan) == 2, 1);
         ts::return_shared(pool); ts::return_shared(profile); ts::return_shared(loan);
     };
@@ -179,20 +179,20 @@ fun bnpl_default_after_due() {
 #[test, expected_failure]
 fun market_collat_insufficient_aborts() {
     let mut sc = ts::begin(ADMIN);
-    { let cap = lending_pool::create_pool<USDT>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
+    { let cap = lending_pool::create_pool<USDC>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
     sc.next_tx(LP);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
-        let c = usdt(1000 * M, sc.ctx());
-        let r = lending_pool::supply<USDT>(&mut pool, c, sc.ctx());
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
+        let c = usdc(1000 * M, sc.ctx());
+        let r = lending_pool::supply<USDC>(&mut pool, c, sc.ctx());
         transfer::public_transfer(r, LP);
         ts::return_shared(pool);
     };
     sc.next_tx(BORROWER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let collat = coin::mint_for_testing<SUI>(100 * M, sc.ctx());
-        let funds = market::borrow_collateralized<USDT, SUI>(&mut pool, collat, 100 * M, 30, sc.ctx());
+        let funds = market::borrow_collateralized<USDC, SUI>(&mut pool, collat, 100 * M, 30, sc.ctx());
         coin::burn_for_testing(funds);
         ts::return_shared(pool);
     };
@@ -203,30 +203,30 @@ fun market_collat_insufficient_aborts() {
 #[test]
 fun market_liquidate_past_due() {
     let mut sc = ts::begin(ADMIN);
-    { let cap = lending_pool::create_pool<USDT>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
+    { let cap = lending_pool::create_pool<USDC>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
     sc.next_tx(LP);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
-        let c = usdt(1000 * M, sc.ctx());
-        let r = lending_pool::supply<USDT>(&mut pool, c, sc.ctx());
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
+        let c = usdc(1000 * M, sc.ctx());
+        let r = lending_pool::supply<USDC>(&mut pool, c, sc.ctx());
         transfer::public_transfer(r, LP);
         ts::return_shared(pool);
     };
     sc.next_tx(BORROWER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let collat = coin::mint_for_testing<SUI>(150 * M, sc.ctx());
-        let funds = market::borrow_collateralized<USDT, SUI>(&mut pool, collat, 100 * M, 1, sc.ctx());
+        let funds = market::borrow_collateralized<USDC, SUI>(&mut pool, collat, 100 * M, 1, sc.ctx());
         coin::burn_for_testing(funds);
         ts::return_shared(pool);
     };
     sc.next_epoch(ADMIN); sc.next_epoch(ADMIN);
     sc.next_tx(ADMIN);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
-        let mut pos = ts::take_shared<CollateralizedPosition<USDT, SUI>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
+        let mut pos = ts::take_shared<CollateralizedPosition<USDC, SUI>>(&sc);
         let lock = ts::take_shared<CollateralLock<SUI>>(&sc);
-        market::liquidate<USDT, SUI>(&mut pos, lock, &mut pool, sc.ctx());
+        market::liquidate<USDC, SUI>(&mut pos, lock, &mut pool, sc.ctx());
         assert!(market::status_collat(&pos) == 2, 1);
         ts::return_shared(pool); ts::return_shared(pos);
     };
@@ -237,12 +237,12 @@ fun market_liquidate_past_due() {
 #[test, expected_failure]
 fun market_uncollat_no_score_aborts() {
     let mut sc = ts::begin(ADMIN);
-    { let cap = lending_pool::create_pool<USDT>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
+    { let cap = lending_pool::create_pool<USDC>(500, sc.ctx()); transfer::public_transfer(cap, ADMIN); };
     sc.next_tx(LP);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
-        let c = usdt(1000 * M, sc.ctx());
-        let r = lending_pool::supply<USDT>(&mut pool, c, sc.ctx());
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
+        let c = usdc(1000 * M, sc.ctx());
+        let r = lending_pool::supply<USDC>(&mut pool, c, sc.ctx());
         transfer::public_transfer(r, LP);
         ts::return_shared(pool);
     };
@@ -250,9 +250,9 @@ fun market_uncollat_no_score_aborts() {
     { credit::open_profile(sc.ctx()); };
     sc.next_tx(BORROWER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let mut profile = ts::take_shared<CreditProfile>(&sc);
-        let funds = market::borrow_uncollateralized<USDT>(&mut pool, &mut profile, 20 * M, 30, sc.ctx());
+        let funds = market::borrow_uncollateralized<USDC>(&mut pool, &mut profile, 20 * M, 30, sc.ctx());
         coin::burn_for_testing(funds);
         ts::return_shared(pool); ts::return_shared(profile);
     };
@@ -263,20 +263,20 @@ fun market_uncollat_no_score_aborts() {
 #[test]
 fun merchant_escrow_settle_withdraw() {
     let mut sc = ts::begin(MERCHANT);
-    { let cap = merchant_escrow::create_escrow<USDT>(sc.ctx()); transfer::public_transfer(cap, MERCHANT); };
+    { let cap = merchant_escrow::create_escrow<USDC>(sc.ctx()); transfer::public_transfer(cap, MERCHANT); };
     sc.next_tx(BORROWER);
     {
-        let mut escrow = ts::take_shared<MerchantEscrow<USDT>>(&sc);
-        let c = usdt(40 * M, sc.ctx());
-        merchant_escrow::settle_payment<USDT>(&mut escrow, c, b"order-9", sc.ctx());
+        let mut escrow = ts::take_shared<MerchantEscrow<USDC>>(&sc);
+        let c = usdc(40 * M, sc.ctx());
+        merchant_escrow::settle_payment<USDC>(&mut escrow, c, b"order-9", sc.ctx());
         assert!(merchant_escrow::balance_value(&escrow) == 40 * M, 1);
         ts::return_shared(escrow);
     };
     sc.next_tx(MERCHANT);
     {
-        let mut escrow = ts::take_shared<MerchantEscrow<USDT>>(&sc);
+        let mut escrow = ts::take_shared<MerchantEscrow<USDC>>(&sc);
         let cap = ts::take_from_sender<MerchantCap>(&sc);
-        let out = merchant_escrow::withdraw<USDT>(&mut escrow, &cap, sc.ctx());
+        let out = merchant_escrow::withdraw<USDC>(&mut escrow, &cap, sc.ctx());
         assert!(coin::value(&out) == 40 * M, 2);
         coin::burn_for_testing(out);
         ts::return_to_sender(&sc, cap);

@@ -10,16 +10,16 @@ use xorr_contracts::confidential_credit::{Self, CreditOracle, OracleAdminCap};
 use xorr_contracts::credit::{Self, CreditProfile};
 use xorr_contracts::lending_pool::{Self, LendingPool};
 use xorr_contracts::merchant_escrow::{Self, MerchantEscrow};
-use xorr_contracts::usdt::USDT;
+use xorr_contracts::usdc::USDC;
 
 const ADMIN: address = @0xAD;
 const SUPPLIER: address = @0x5;
 const BORROWER: address = @0xB0;
 const MERCHANT: address = @0x3E;
 
-// 6-decimal USDT amounts.
-const SUPPLY: u64 = 100_000_000; // 100 USDT
-const PURCHASE: u64 = 30_000_000; // 30 USDT
+// 6-decimal USDC amounts.
+const SUPPLY: u64 = 100_000_000; // 100 USDC
+const PURCHASE: u64 = 30_000_000; // 30 USDC
 const REPAYMENT: u64 = 31_500_000; // 30 + 5% interest
 
 /// Full Buy-Now-Pay-Never flow: supply -> purchase -> repay -> credit limit
@@ -30,41 +30,41 @@ fun bnpl_full_flow() {
 
     // 1. Admin creates the lending pool (5% interest on the term).
     {
-        let cap = lending_pool::create_pool<USDT>(500, sc.ctx());
+        let cap = lending_pool::create_pool<USDC>(500, sc.ctx());
         transfer::public_transfer(cap, ADMIN);
     };
 
-    // 2. Supplier deposits 100 USDT of lendable liquidity.
+    // 2. Supplier deposits 100 USDC of lendable liquidity.
     sc.next_tx(SUPPLIER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
-        let usdt = coin::mint_for_testing<USDT>(SUPPLY, sc.ctx());
-        let receipt = lending_pool::supply<USDT>(&mut pool, usdt, sc.ctx());
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
+        let usdc = coin::mint_for_testing<USDC>(SUPPLY, sc.ctx());
+        let receipt = lending_pool::supply<USDC>(&mut pool, usdc, sc.ctx());
         transfer::public_transfer(receipt, SUPPLIER);
         ts::return_shared(pool);
     };
 
-    // 3. Borrower opens a credit profile (starter limit 50 USDT).
+    // 3. Borrower opens a credit profile (starter limit 50 USDC).
     sc.next_tx(BORROWER);
     { credit::open_profile(sc.ctx()); };
 
     // 4. Merchant opens a payment escrow.
     sc.next_tx(MERCHANT);
     {
-        let cap = merchant_escrow::create_escrow<USDT>(sc.ctx());
+        let cap = merchant_escrow::create_escrow<USDC>(sc.ctx());
         transfer::public_transfer(cap, MERCHANT);
     };
 
-    // 5. Borrower buys 30 USDT now, fully collateralized with 30 SUI, 30-epoch term.
+    // 5. Borrower buys 30 USDC now, fully collateralized with 30 SUI, 30-epoch term.
     sc.next_tx(BORROWER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let mut profile = ts::take_shared<CreditProfile>(&sc);
-        let mut escrow = ts::take_shared<MerchantEscrow<USDT>>(&sc);
+        let mut escrow = ts::take_shared<MerchantEscrow<USDC>>(&sc);
         assert!(credit::credit_limit(&profile) == 50_000_000, 100);
 
         let collat = coin::mint_for_testing<SUI>(PURCHASE, sc.ctx());
-        bnpl::open_purchase<USDT, SUI>(
+        bnpl::open_purchase<USDC, SUI>(
             &mut pool,
             &mut profile,
             &mut escrow,
@@ -87,20 +87,20 @@ fun bnpl_full_flow() {
     // 6. Borrower repays principal + interest -> loan closes, limit grows.
     sc.next_tx(BORROWER);
     {
-        let mut pool = ts::take_shared<LendingPool<USDT>>(&sc);
+        let mut pool = ts::take_shared<LendingPool<USDC>>(&sc);
         let mut profile = ts::take_shared<CreditProfile>(&sc);
-        let mut loan = ts::take_shared<Loan<USDT, SUI>>(&sc);
+        let mut loan = ts::take_shared<Loan<USDC, SUI>>(&sc);
 
-        let pay = coin::mint_for_testing<USDT>(REPAYMENT, sc.ctx());
-        let refund = bnpl::repay<USDT, SUI>(&mut loan, &mut pool, &mut profile, pay, sc.ctx());
+        let pay = coin::mint_for_testing<USDC>(REPAYMENT, sc.ctx());
+        let refund = bnpl::repay<USDC, SUI>(&mut loan, &mut pool, &mut profile, pay, sc.ctx());
         assert!(coin::value(&refund) == 0, 104);
         coin::burn_for_testing(refund);
 
         assert!(bnpl::is_repaid(&loan), 105);
         assert!(credit::outstanding(&profile) == 0, 106);
-        // Credit limit grew by 10% of the 30 USDT principal repaid: 50 -> 53 USDT.
+        // Credit limit grew by 10% of the 30 USDC principal repaid: 50 -> 53 USDC.
         assert!(credit::credit_limit(&profile) == 53_000_000, 107);
-        // Suppliers earned the 1.5 USDT interest: pool assets = 100 + 1.5.
+        // Suppliers earned the 1.5 USDC interest: pool assets = 100 + 1.5.
         assert!(lending_pool::total_assets(&pool) == 101_500_000, 108);
 
         ts::return_shared(pool);
@@ -111,9 +111,9 @@ fun bnpl_full_flow() {
     // 7. Borrower reclaims the locked collateral.
     sc.next_tx(BORROWER);
     {
-        let loan = ts::take_shared<Loan<USDT, SUI>>(&sc);
+        let loan = ts::take_shared<Loan<USDC, SUI>>(&sc);
         let lock = ts::take_shared<CollateralLock<SUI>>(&sc);
-        let collat_back = bnpl::release_collateral<USDT, SUI>(&loan, lock, sc.ctx());
+        let collat_back = bnpl::release_collateral<USDC, SUI>(&loan, lock, sc.ctx());
         assert!(coin::value(&collat_back) == PURCHASE, 109);
         coin::burn_for_testing(collat_back);
         ts::return_shared(loan);
