@@ -3,9 +3,14 @@
   "version": "v3 (USDC) + on-chain AWS Nitro attestation (in-place upgrade)",
   "publishDigest": "CK29RrhAUNAb33kv3YfXU5PJWuaVR9HsHFh1EgCx8VVq",
   "packageId": "0xa105190b2218938815920010957f7adf856940452e304a63e195e132f14713b9",
-  "upgradedPackageId": "0xd74650b76c2a22ad331b7c55b96d72449145ecd6ff8a3b278047c7a76ed577ac",
-  "upgradeDigest": "GrENuudijQW8PkF9mMZPha5vddGEDY92hju2Q4az7THh",
-  "note": "Types live at packageId (0xa105, module self-address). Call the new *_attested functions at upgradedPackageId. Pool/escrow/coin/faucet are unchanged by the upgrade.",
+  "upgradedPackageId": "0xffbc99cca6437bcd05e23e8bc290b968b83074ab36da6ad1938b5b96517b8310",
+  "upgradeChain": [
+    "0xa105190b… v1 (publish)",
+    "0xd74650b7… on-chain Nitro attestation",
+    "0x2f3761b5… verify_and_apply_score_attested_v2 (freshness) + supply share guard",
+    "0xffbc99cc… lending_pool::withdraw_amount (partial withdraw / repay-from-LP)"
+  ],
+  "note": "Types live at packageId (0xa105, module self-address). Call upgrade-ADDED functions (verify_and_apply_score_attested_v2, lending_pool::withdraw_amount) at upgradedPackageId (latest). Pool/escrow/coin/faucet unchanged across upgrades.",
   "coinType": "0xa105190b2218938815920010957f7adf856940452e304a63e195e132f14713b9::usdc::USDC",
   "deployer": "0xbe4290542197515da9967183c24b60ad092f0d08a7baf1201f7eec913d44dc23",
   "objects": {

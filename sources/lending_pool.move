@@ -103,6 +103,23 @@ public fun withdraw<T>(pool: &mut LendingPool<T>, receipt: SupplyReceipt<T>, ctx
     coin::from_balance(out, ctx)
 }
 
+/// Partially redeem a supply receipt for `amount` of `T` (the receipt stays,
+/// with its shares reduced). Lets a supplier pull just enough liquidity (e.g. to
+/// repay a loan) without closing their whole position. Aborts if the pool
+/// doesn't have `amount` idle.
+public fun withdraw_amount<T>(pool: &mut LendingPool<T>, receipt: &mut SupplyReceipt<T>, amount: u64, ctx: &mut TxContext): Coin<T> {
+    assert!(amount > 0, EZeroAmount);
+    let assets = total_assets(pool);
+    let shares_to_burn = (((amount as u128) * (pool.total_shares as u128)) / (assets as u128)) as u64;
+    assert!(shares_to_burn > 0 && shares_to_burn <= receipt.shares, EInsufficientLiquidity);
+    assert!(balance::value(&pool.available) >= amount, EInsufficientLiquidity);
+    receipt.shares = receipt.shares - shares_to_burn;
+    pool.total_shares = pool.total_shares - shares_to_burn;
+    let pool_id = object::id(pool);
+    event::emit(Withdrawn { pool_id, supplier: ctx.sender(), amount, shares: shares_to_burn });
+    coin::from_balance(balance::split(&mut pool.available, amount), ctx)
+}
+
 /// Inject external yield (e.g. realized DeepBook returns) into the pool.
 /// Lifts every supplier's share value. Permissionless — funds speak.
 public fun inject_yield<T>(pool: &mut LendingPool<T>, c: Coin<T>) {
