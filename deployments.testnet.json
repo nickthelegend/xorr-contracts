@@ -1,18 +1,28 @@
 {
   "network": "testnet",
-  "version": "v2 (with market module: over + under collateralized lend/borrow)",
-  "publishDigest": "A23RJrdMrat5Qxf33cXPDwx4jd6HCGLGqggQXW6HAHEu",
-  "packageId": "0x9572997e5d494f961fc9b2260b8c085a1b20b16bd1495f3972b7dfda0ff11a40",
+  "version": "v3 (USDC) — usdc::USDC test coin; over+under collateralized lend/borrow + confidential credit",
+  "publishDigest": "CK29RrhAUNAb33kv3YfXU5PJWuaVR9HsHFh1EgCx8VVq",
+  "packageId": "0xa105190b2218938815920010957f7adf856940452e304a63e195e132f14713b9",
+  "coinType": "0xa105190b2218938815920010957f7adf856940452e304a63e195e132f14713b9::usdc::USDC",
   "deployer": "0xbe4290542197515da9967183c24b60ad092f0d08a7baf1201f7eec913d44dc23",
   "objects": {
-    "usdtFaucet": "0xd82f0891a6a954d56369cc3136d5227261dc1222f71f8689985feda94c151843",
-    "creditOracle": "0x7ff16c140cd7ffaa253a8204d9013f51393c3cf90fc4f75e4e2d42ab82f86606",
-    "oracleAdminCap": "0x4b8dbf17abe388623fc826beea4007e0da8fc5ad7054c0c825bb023ce8f08fc9",
-    "demoLendingPool": "0x64a3efc2629084d75c168a1140c0b5feeb167ad5b1ae19ccd2214a3b332e8661",
-    "demoMerchantEscrow": "0x74b6e2bc6b0e6f2aa43905b5968d29f6fac10fa53835a6dea2d328d076dd11b6"
+    "usdcFaucet": "0xf532e1e7f8c83d2be47a68efc6b37bde7f436b76682885e9b3dd50380e6a1d6f",
+    "creditOracle": "0xe4cf3ea3060adab8a42406a7344471eb76002e93c5bb14578e35c578223b7e88",
+    "oracleAdminCap": "0xa5ff3b0e85441bc6e3ee49996ed4072bbd75222a81058c2f1afd80b90e4d37af",
+    "demoLendingPool": "0x2763f2907909d2aade0224bad144d4497df741d01c500d781c7abd2331cb9993",
+    "demoMerchantEscrow": "0x44945bd13ef548fd3beb77c6d111bdfd88e549a3650a9caa7213d527d4e59c0c"
   },
-  "modules": ["bnpl", "collateral", "confidential_credit", "credit", "lending_pool", "liquidity_pool", "market", "merchant_escrow", "registry", "swap_router", "usdo", "usdt", "xorr"],
+  "enclave": {
+    "credit_oracle_pubkey_registered": "0x1b250be06dd80370ff11f0b8fe17d4f32da4485005bf9d72a033933709d45777",
+    "endpoint": "http://98.81.188.34:3000/process_data"
+  },
+  "verifiedOnChain": {
+    "bnpl_loop": "credit limit 50 -> 53 USDC on repayment",
+    "confidential_credit": "TEE-signed score 750 -> unsecured 50 USDC borrow"
+  },
+  "modules": ["bnpl", "collateral", "confidential_credit", "credit", "lending_pool", "liquidity_pool", "market", "merchant_escrow", "registry", "swap_router", "usdc", "usdo", "xorr"],
   "previousPublishes": {
+    "v2_usdt": "0x9572997e5d494f961fc9b2260b8c085a1b20b16bd1495f3972b7dfda0ff11a40",
     "v1_bnpl": "0x6cfb612ed64ac01de2f6f434f93ffa0a266ed25a3d93dbf7172e409ba26482eb",
     "v0_amm": "0xcce58c073fe38e06bca69674792098501f5a6cddac197f2565d6300ac0158a4b"
   }
