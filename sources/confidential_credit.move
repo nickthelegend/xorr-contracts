@@ -29,6 +29,7 @@ const EPcrMismatch: u64 = 4;
 const ENoAttestedKey: u64 = 5;
 const ENotAttestedAdmin: u64 = 6;
 const EStaleAttestation: u64 = 7;
+const ENotEnclave: u64 = 8;
 
 /// Max age of a TEE attestation accepted on-chain. An attestation older than
 /// this is rejected, so a stale/replayed score (e.g. an old high limit after a
@@ -263,7 +264,86 @@ public fun attested_pubkey(o: &AttestedOracle): vector<u8> { o.enclave_pubkey }
 public fun attested_is_set(o: &AttestedOracle): bool { o.attested }
 public fun attested_pcr0(o: &AttestedOracle): vector<u8> { o.pcr0 }
 
+// ============================================================================
+// Seal (threshold IBE) access policy — confidential credit INPUTS (Step 1).
+//
+// The borrower Seal-encrypts their private financial inputs (income, debts,
+// payment history) to this package, client-side. The Seal key servers dry-run
+// `seal_approve` before releasing the IBE decryption key — and it passes ONLY
+// when the requester is the attested credit enclave (whose ed25519 key is bound
+// on-chain via the Nitro attestation above). So ONLY the enclave can ever
+// decrypt the inputs; the chain (and everyone else) sees only ciphertext.
+// This is the Shell Finance dark-pool pattern (`shell::shell::seal_approve`)
+// applied to credit data — raw financials never leave the enclave.
+// ============================================================================
+
+/// Sui address derived from a raw ed25519 pubkey: blake2b256(0x00 flag || pk).
+/// This is the on-chain address the enclave signs its Seal key request from.
+public fun enclave_address(pk: vector<u8>): address {
+    let mut bytes = vector[0u8]; // ed25519 signature-scheme flag
+    bytes.append(pk);
+    sui::address::from_bytes(sui::hash::blake2b256(&bytes))
+}
+
+/// Seal access policy: release the IBE key ONLY to the attested credit enclave.
+entry fun seal_approve(_id: vector<u8>, oracle: &AttestedOracle, ctx: &TxContext) {
+    assert!(oracle.attested && oracle.enclave_pubkey.length() == 32, ENoAttestedKey);
+    assert!(ctx.sender() == enclave_address(oracle.enclave_pubkey), ENotEnclave);
+}
+
 #[test_only]
 public fun init_for_testing(ctx: &mut TxContext) {
     init(CONFIDENTIAL_CREDIT {}, ctx)
+}
+
+#[test_only]
+use sui::test_scenario as ts;
+
+#[test_only]
+public fun set_attested_for_testing(o: &mut AttestedOracle, pk: vector<u8>) {
+    o.enclave_pubkey = pk;
+    o.attested = true;
+}
+
+#[test_only]
+const TEST_ENCLAVE_PK: vector<u8> = x"1b250be06dd80370ff11f0b8fe17d4f32da4485005bf9d72a033933709d45777";
+
+#[test]
+fun enclave_address_is_deterministic() {
+    assert!(enclave_address(TEST_ENCLAVE_PK) == enclave_address(TEST_ENCLAVE_PK), 0);
+}
+
+#[test]
+fun seal_approve_releases_key_to_enclave() {
+    let mut sc = ts::begin(@0xAD);
+    let cap = create_attested_oracle(sc.ctx());
+    transfer::public_transfer(cap, @0xAD);
+    sc.next_tx(@0xAD);
+    let mut oracle = ts::take_shared<AttestedOracle>(&sc);
+    set_attested_for_testing(&mut oracle, TEST_ENCLAVE_PK);
+    let enclave = enclave_address(TEST_ENCLAVE_PK);
+    ts::return_shared(oracle);
+    // Acting as the enclave's on-chain address -> the policy approves.
+    sc.next_tx(enclave);
+    let oracle = ts::take_shared<AttestedOracle>(&sc);
+    seal_approve(x"01", &oracle, sc.ctx());
+    ts::return_shared(oracle);
+    sc.end();
+}
+
+#[test, expected_failure(abort_code = ENotEnclave)]
+fun seal_approve_rejects_non_enclave() {
+    let mut sc = ts::begin(@0xAD);
+    let cap = create_attested_oracle(sc.ctx());
+    transfer::public_transfer(cap, @0xAD);
+    sc.next_tx(@0xAD);
+    let mut oracle = ts::take_shared<AttestedOracle>(&sc);
+    set_attested_for_testing(&mut oracle, TEST_ENCLAVE_PK);
+    ts::return_shared(oracle);
+    // Anyone who is NOT the enclave is denied the key.
+    sc.next_tx(@0xBEEF);
+    let oracle = ts::take_shared<AttestedOracle>(&sc);
+    seal_approve(x"01", &oracle, sc.ctx());
+    ts::return_shared(oracle);
+    sc.end();
 }
