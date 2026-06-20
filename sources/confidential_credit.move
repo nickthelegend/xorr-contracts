@@ -203,6 +203,17 @@ public fun register_enclave_key(oracle: &mut AttestedOracle, document: NitroAtte
     event::emit(AttestedKeyRegistered { oracle_id: object::id(oracle), pubkey: oracle.enclave_pubkey });
 }
 
+/// DEV/testing: bind the enclave key directly (no Nitro attestation). Admin-gated.
+/// Lets the full Seal-decrypt → score → attest flow be exercised end-to-end
+/// without a live enclave rebuild. PRODUCTION must use `register_enclave_key`
+/// (PCR-attested) — this path trusts the admin, not the hardware.
+public fun set_attested_pubkey_dev(cap: &AttestedOracleCap, oracle: &mut AttestedOracle, pubkey: vector<u8>) {
+    assert!(cap.oracle_id == object::id(oracle), ENotAttestedAdmin);
+    oracle.enclave_pubkey = pubkey;
+    oracle.attested = true;
+    event::emit(AttestedKeyRegistered { oracle_id: object::id(oracle), pubkey });
+}
+
 /// Verify a TEE-signed credit score against the ATTESTATION-bound key and apply
 /// it. Identical message format to `verify_and_apply_score`, but the key is
 /// provably the audited enclave's, not an admin's assertion.
